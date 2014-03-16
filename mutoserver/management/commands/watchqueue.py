@@ -1,13 +1,15 @@
 from io import BytesIO
 import json
 import os
+
 import boto
 from boto.s3.key import Key
-import redis
 from django.conf import settings
 from django.core.management.base import NoArgsCommand, CommandError
 from django.db.models.loading import get_model
 from easy_thumbnails.files import get_thumbnailer
+import redis
+import requests
 
 
 class Command(NoArgsCommand):
@@ -47,7 +49,7 @@ class Command(NoArgsCommand):
             thumbnailer = get_thumbnailer(orig, relative_name=transform['key'])
 
             for version in transform['versions']:
-                self.stdout.write('       - {identifier}   {options}'.format(**version))
+                self.stdout.write('       - {identifier}'.format(**version))
 
                 thumb = thumbnailer.get_thumbnail(version['options'], save=False)
 
@@ -61,13 +63,24 @@ class Command(NoArgsCommand):
                 thumb_key.set_contents_from_string(thumb.read())
                 thumb_key.set_acl('public-read')
 
+                thumb_data = dict(
+                    key=thumb_key.key,
+                    width=thumb.width,
+                    height=thumb.height,
+                )
+
                 self.redis.hmset('muto:{bucket}:{key}:{version}'.format(**dict(
                     bucket=transform['bucket'],
                     key=transform['key'],
                     version=version['identifier'],
-                )), dict(
-                    key=thumb_key.key,
-                    width=thumb.width,
-                    height=thumb.height,
-                ))
+                )), thumb_data)
 
+            if transform['callback_url'] is not None:
+                headers = {'content-type': 'application/json'}
+                payload = {
+                    'model': transform['model'],
+                    'pk': transform['pk'],
+                    'field': transform['field'],
+                    'status': 'DONE',
+                }
+                requests.post(transform['callback_url'], data=json.dumps(payload), headers=headers)
