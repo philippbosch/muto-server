@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='muto-server',
-    version='0.1.3',
+    version='0.1.4',
     description='muto is a client/server system for cloud-based image manipulation in Django projects',
     author='Philipp Bosch',
     author_email='hello+muto-server@pb.io',
