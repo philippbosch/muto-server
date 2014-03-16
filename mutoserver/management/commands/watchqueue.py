@@ -15,7 +15,7 @@ class Command(NoArgsCommand):
 
     def handle_noargs(self, **options):
         self.redis = redis.StrictRedis.from_url(getattr(settings, 'MUTO_REDIS_URL', 'redis://:6379'))
-        self.s3 = boto.connect_s3(aws_access_key_id=getattr(settings, 'MUTO_AWS_ACCESS_KEY_ID', ), aws_secret_access_key=None)
+        self.s3 = boto.connect_s3(aws_access_key_id=getattr(settings, 'MUTO_AWS_ACCESS_KEY_ID', getattr(settings, 'AWS_ACCESS_KEY_ID', os.getenv('AWS_ACCESS_KEY_ID'))), aws_secret_access_key=getattr(settings, 'MUTO_AWS_SECRET_ACCESS_KEY', getattr(settings, 'AWS_SECRET_ACCESS_KEY', os.getenv('AWS_SECRET_ACCESS_KEY'))))
 
         pubsub = self.redis.pubsub()
         pubsub.subscribe('muto:queue')
